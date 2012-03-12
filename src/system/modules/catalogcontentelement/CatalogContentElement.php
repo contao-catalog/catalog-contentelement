@@ -74,8 +74,9 @@ class CatalogContentElementModule extends ModuleCatalogReader
 
 	public function generateList()
 	{
-		$colSort = implode('', $this->processFieldSQL(array($this->catalog_display_ce)));
-		$arrConverted = $this->processFieldSQL($this->catalog_visible);
+		$colSort = implode('', $this->processFieldSQL(array($this->catalog_display_ce), $this->strTable));
+		$arrConverted = $this->processFieldSQL($this->catalog_visible, $this->strTable);
+		
 		// might be calculated field.
 		if(($p=strpos($colSort, 'AS')) !== false)
 		{
@@ -83,20 +84,24 @@ class CatalogContentElementModule extends ModuleCatalogReader
 		} else {
 			$strSort = $colSort;
 		}
+		
 		$objItems=$this->Database->prepare('SELECT '.implode(',',$this->systemColumns).','.implode(',',$arrConverted).', '.$colSort.', (SELECT name FROM tl_catalog_types WHERE tl_catalog_types.id='.$this->strTable.'.pid) AS catalog_name FROM '.$this->strTable. ' ORDER BY '.$strSort)
 								->execute();
+		
 		foreach($this->generateCatalog($objItems, false, $arrFields, false) as $arrItem)
 		{
 			$arrItems[$arrItem['id']] = $arrItem['data'][$this->catalog_display_ce]['value'];
 		}
+		
 		return $arrItems;
 	}
 
 	public function generateItem()
 	{
-		$arrConverted = $this->processFieldSQL($this->catalog_visible);
+		$arrConverted = $this->processFieldSQL($this->catalog_visible, $this->strTable);
 		$objItem=$this->Database->prepare('SELECT '.implode(',',$this->systemColumns).','.implode(',',$arrConverted).', (SELECT name FROM tl_catalog_types WHERE tl_catalog_types.id='.$this->strTable.'.pid) AS catalog_name FROM '.$this->strTable.' WHERE id=?')
 								->execute($this->cat_item);
+		
 		return $this->parseCatalog($objItem, false, $this->catalog_template, $this->catalog_visible);
 	}
 
@@ -104,7 +109,6 @@ class CatalogContentElementModule extends ModuleCatalogReader
 
 class CatalogContentElement extends ContentElement
 {
-
 	protected $strTemplate = 'ce_catalog';
 
 	public function __construct(Database_Result $objModule)
