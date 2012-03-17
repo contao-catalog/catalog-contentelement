@@ -39,14 +39,13 @@ class CatalogContentElementModule extends ModuleCatalogReader
 		$objCatalog = $this->Database->prepare('SELECT c.*, ce.catalog_visible, ce.catalog_template, ce.catalog_display_ce FROM tl_catalog_types c LEFT JOIN tl_catalog_ce ce ON (ce.pid=c.id) WHERE ce.id=?')
 				->limit(1)
 				->execute($this->cat_cetemplate);
-		$this->objCatalog=$objCatalog;
+		
+		$this->objCatalogType = $objCatalog;
+		
 		if ($objCatalog->numRows > 0 && $objCatalog->tableName)
 		{
 			$this->catalog = $objCatalog->id;
-			$this->strTable = $objCatalog->tableName;
-			$this->strAliasField=$objCatalog->aliasField;
-			$this->publishField=$objCatalog->publishField;
-
+			
 			// dynamically load dca for catalog operations
 			$this->Import('Catalog');
 			if(!$GLOBALS['TL_DCA'][$objCatalog->tableName]['Cataloggenerated'])
@@ -71,11 +70,16 @@ class CatalogContentElementModule extends ModuleCatalogReader
 			$this->catalog_display_ce = $objCatalog->catalog_display_ce;
 		}
 	}
-
+	
 	public function generateList()
 	{
-		$colSort = implode('', $this->processFieldSQL(array($this->catalog_display_ce), $this->strTable));
-		$arrConverted = $this->processFieldSQL($this->catalog_visible, $this->strTable);
+		$colSort = implode('', $this->processFieldSQL(array($this->catalog_display_ce),
+																									$this->catalog,
+																									$this->objCatalogType->tableName));
+		
+		$arrConverted = $this->processFieldSQL($this->catalog_visible,
+																						$this->catalog,
+																						$this->objCatalogType->tableName);
 		
 		// might be calculated field.
 		if(($p=strpos($colSort, 'AS')) !== false)
@@ -98,13 +102,14 @@ class CatalogContentElementModule extends ModuleCatalogReader
 
 	public function generateItem()
 	{
-		$arrConverted = $this->processFieldSQL($this->catalog_visible, $this->strTable);
+		$arrConverted = $this->processFieldSQL($this->catalog_visible, $this->catalog,
+																						$this->objCatalogType->tableName);
+		
 		$objItem=$this->Database->prepare('SELECT '.implode(',',$this->systemColumns).','.implode(',',$arrConverted).', (SELECT name FROM tl_catalog_types WHERE tl_catalog_types.id='.$this->strTable.'.pid) AS catalog_name FROM '.$this->strTable.' WHERE id=?')
 								->execute($this->cat_item);
 		
 		return $this->parseCatalog($objItem, false, $this->catalog_template, $this->catalog_visible);
 	}
-
 }
 
 class CatalogContentElement extends ContentElement
